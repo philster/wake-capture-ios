@@ -1,0 +1,113 @@
+# XcodeGen project specification - regenerate the project with:
+#   brew install xcodegen && xcodegen generate
+# The .xcodeproj is NOT checked in; this file is the source of truth.
+
+name: WakeCapture
+options:
+  bundleIdPrefix: com.wakecapture
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "26.3"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+configFiles:
+  Debug: Signing.xcconfig
+  Release: Signing.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: "NO"
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: "1.0"
+    GENERATE_INFOPLIST_FILE: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
+
+targets:
+  WakeCapture:
+    type: application
+    platform: iOS
+    sources:
+      - path: WakeCapture
+        excludes:
+          - "**/.DS_Store"
+    info:
+      path: WakeCapture/Info.plist
+    entitlements:
+      path: WakeCapture/WakeCapture.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wakecapture.app
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Wake Capture uses your microphone to record voice memos when you start a capture."
+        INFOPLIST_KEY_NSSupportsLiveActivities: "YES"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_CFBundleDisplayName: "Wake Capture"
+        ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
+    dependencies:
+      - target: WakeCaptureWidgets
+        embed: true
+      - target: WakeCaptureLiveActivity
+        embed: true
+
+  WakeCaptureWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: WakeCaptureWidgets
+        excludes:
+          - "**/.DS_Store"
+      - path: WakeCapture/CaptureCore/CaptureActivityAttributes.swift
+      - path: WakeCapture/SystemIntegration/Intents/StartWakeCaptureIntent.swift
+      - path: WakeCapture/SystemIntegration/Intents/StopWakeCaptureIntent.swift
+      - path: WakeCapture/SystemIntegration/Intents/ToggleArmIntent.swift
+      - path: WakeCapture/SystemIntegration/SharedCaptureCoordinator.swift
+      - path: WakeCapture/CaptureCore/CaptureCoordinator.swift
+      - path: WakeCapture/CaptureCore/CaptureState.swift
+      - path: WakeCapture/CaptureCore/CaptureError.swift
+      - path: WakeCapture/CaptureCore/CaptureSession.swift
+      - path: WakeCapture/Audio/AudioSessionController.swift
+      - path: WakeCapture/Audio/AudioRecorder.swift
+      - path: WakeCapture/Persistence/RecordingFileStore.swift
+      - path: WakeCapture/Persistence/CaptureRecord.swift
+      - path: WakeCapture/Persistence/CaptureRepository.swift
+    info:
+      path: WakeCaptureWidgets/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wakecapture.app.widgets
+    dependencies: []
+
+  WakeCaptureLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: WakeCaptureLiveActivity
+        excludes:
+          - "**/.DS_Store"
+      - path: WakeCapture/CaptureCore/CaptureActivityAttributes.swift
+      - path: WakeCapture/SystemIntegration/Intents/StopWakeCaptureIntent.swift
+      - path: WakeCapture/SystemIntegration/SharedCaptureCoordinator.swift
+      - path: WakeCapture/CaptureCore/CaptureCoordinator.swift
+      - path: WakeCapture/CaptureCore/CaptureState.swift
+      - path: WakeCapture/CaptureCore/CaptureError.swift
+      - path: WakeCapture/CaptureCore/CaptureSession.swift
+      - path: WakeCapture/Audio/AudioSessionController.swift
+      - path: WakeCapture/Audio/AudioRecorder.swift
+      - path: WakeCapture/Persistence/RecordingFileStore.swift
+      - path: WakeCapture/Persistence/CaptureRecord.swift
+      - path: WakeCapture/Persistence/CaptureRepository.swift
+    info:
+      path: WakeCaptureLiveActivity/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wakecapture.app.liveactivity
+    dependencies: []
