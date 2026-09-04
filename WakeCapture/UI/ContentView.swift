@@ -2,22 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(CaptureCoordinator.self) private var coordinator
-    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            Group {
-                switch coordinator.state {
-                case .recording, .starting, .stopping:
-                    RecordingView()
-                default:
-                    HomeView()
-                }
-            }
-        }
-        .onChange(of: coordinator.state.isActive) { _, isActive in
-            if isActive {
-                navigationPath = NavigationPath()
+        switch coordinator.state {
+        case .recording, .starting, .stopping:
+            RecordingView()
+        default:
+            NavigationStack {
+                HomeView()
             }
         }
     }
