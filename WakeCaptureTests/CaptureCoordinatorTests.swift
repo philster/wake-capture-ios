@@ -26,7 +26,7 @@ final class CaptureCoordinatorTests: XCTestCase {
 
     // MARK: - Arm / Disarm
 
-    func test_arm_disarm_toggleArmed() {
+    func test_arm_disarm() {
         XCTAssertEqual(sut.state, .disarmed)
         XCTAssertFalse(sut.isArmed)
 
@@ -41,9 +41,9 @@ final class CaptureCoordinatorTests: XCTestCase {
 
     func test_toggleArmed_togglesBothDirections() {
         sut.toggleArmed()
-        XCTAssertTrue(sut.isArmed)
+        XCTAssertEqual(sut.state, .armed)
         sut.toggleArmed()
-        XCTAssertFalse(sut.isArmed)
+        XCTAssertEqual(sut.state, .disarmed)
     }
 
     // MARK: - Start Capture guards
@@ -168,7 +168,7 @@ final class CaptureCoordinatorTests: XCTestCase {
 
         await sut.stopCapture()
 
-        XCTAssertEqual(sut.state, .saved)
+        XCTAssertEqual(sut.state, .armed)
         XCTAssertEqual(mockStore.savedRecords.count, 1)
         XCTAssertTrue(mockSession.deactivateCalled)
     }
@@ -186,7 +186,7 @@ final class CaptureCoordinatorTests: XCTestCase {
 
         await sut.stopCapture()
 
-        XCTAssertNotEqual(sut.state, .saved)
+        XCTAssertNotEqual(sut.state, .armed)
         XCTAssertTrue(mockStore.savedRecords.isEmpty)
     }
 
@@ -203,18 +203,21 @@ final class CaptureCoordinatorTests: XCTestCase {
 
         await sut.stopCapture()
 
-        XCTAssertNotEqual(sut.state, .saved)
+        XCTAssertEqual(sut.state, .failed)
     }
 
-    // MARK: - Intent auto-arm flow
+    // MARK: - Stop then re-capture
 
-    func test_startCapture_autoArmsFromIntent() async {
-        XCTAssertFalse(sut.isArmed)
-
+    func test_stopCapture_transitionsToArmed_allowingImmediateRestart() async {
         sut.arm()
         await sut.startCapture()
-
         XCTAssertEqual(sut.state, .recording)
-        XCTAssertTrue(sut.isArmed)
+
+        await sut.stopCapture()
+        XCTAssertEqual(sut.state, .armed)
+        XCTAssertTrue(sut.state.canStartCapture)
+
+        await sut.startCapture()
+        XCTAssertEqual(sut.state, .recording)
     }
 }

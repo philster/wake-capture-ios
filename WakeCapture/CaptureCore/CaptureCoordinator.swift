@@ -16,7 +16,8 @@ final class CaptureCoordinator {
     private(set) var state: CaptureState = .disarmed
     private(set) var elapsedSeconds: Int = 0
     private(set) var lastError: CaptureError?
-    private(set) var isArmed: Bool = false
+
+    var isArmed: Bool { state == .armed }
 
     var maxRecordingSeconds: Int = 300
     var silenceTimeoutSeconds: Int = 30
@@ -60,7 +61,6 @@ final class CaptureCoordinator {
 
     func arm() {
         guard state == .disarmed || state == .saved || state == .failed else { return }
-        isArmed = true
         state = .armed
         lastError = nil
         logger.info("Wake Capture armed")
@@ -68,7 +68,6 @@ final class CaptureCoordinator {
 
     func disarm() {
         guard !state.isActive else { return }
-        isArmed = false
         state = .disarmed
         logger.info("Wake Capture disarmed")
     }
@@ -163,7 +162,7 @@ final class CaptureCoordinator {
         if result.succeeded, result.durationSeconds > 0 {
             await persistCapture(result: result)
             stopLiveActivity(recording: false)
-            state = .saved
+            state = .armed
             logger.info("Capture saved: \(result.captureId.uuidString)")
         } else {
             stopLiveActivity(recording: false)
@@ -340,7 +339,7 @@ final class CaptureCoordinator {
     // MARK: - Failure
 
     private func fail(_ error: CaptureError) {
-        state = isArmed ? .armed : .failed
+        state = .failed
         lastError = error
         logger.error("Capture failed: \(error.userMessage)")
     }
