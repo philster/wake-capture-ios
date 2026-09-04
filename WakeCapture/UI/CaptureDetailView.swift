@@ -5,6 +5,7 @@ struct CaptureDetailView: View {
     let capture: CaptureRecord
     @State private var isPlaying = false
     @State private var player: AVAudioPlayer?
+    @State private var playerDelegate = PlayerDelegate()
 
     var body: some View {
         List {
@@ -62,10 +63,20 @@ struct CaptureDetailView: View {
             try AVAudioSession.sharedInstance().setCategory(.playback)
             try AVAudioSession.sharedInstance().setActive(true)
             player = try AVAudioPlayer(contentsOf: url)
+            playerDelegate.onFinish = { isPlaying = false }
+            player?.delegate = playerDelegate
             player?.play()
             isPlaying = true
         } catch {
             isPlaying = false
         }
+    }
+}
+
+private class PlayerDelegate: NSObject, AVAudioPlayerDelegate {
+    var onFinish: (() -> Void)?
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onFinish?()
     }
 }
