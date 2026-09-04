@@ -2,14 +2,33 @@ import Foundation
 import SwiftData
 import OSLog
 
+struct CaptureRecordData: Sendable {
+    let id: UUID
+    let createdAt: Date
+    let durationSeconds: Double
+    let relativePath: String
+    let state: String
+}
+
+protocol CaptureStoring: Sendable {
+    func save(_ data: CaptureRecordData) async throws
+}
+
 @ModelActor
-actor CaptureRepository {
+actor CaptureRepository: CaptureStoring {
     private let logger = Logger(subsystem: "com.wakecapture", category: "Repository")
 
-    func save(_ record: CaptureRecord) throws {
+    func save(_ data: CaptureRecordData) throws {
+        let record = CaptureRecord(
+            id: data.id,
+            createdAt: data.createdAt,
+            durationSeconds: data.durationSeconds,
+            relativePath: data.relativePath,
+            state: data.state
+        )
         modelContext.insert(record)
         try modelContext.save()
-        logger.info("Saved capture: \(record.id.uuidString)")
+        logger.info("Saved capture: \(data.id.uuidString)")
     }
 
     func update(_ id: UUID, duration: Double, state: String) throws {

@@ -9,7 +9,9 @@ import UIKit
 @MainActor
 final class CaptureCoordinator {
     private let logger = Logger(subsystem: "com.wakecapture", category: "Coordinator")
-    private let audioSession = AudioSessionController()
+    private let audioSession: any AudioSessionProviding
+    private let recorderFactory: AudioRecorderFactory
+    let storageCheck: @Sendable () -> Bool
 
     private(set) var state: CaptureState = .disarmed
     private(set) var elapsedSeconds: Int = 0
@@ -19,17 +21,31 @@ final class CaptureCoordinator {
     var maxRecordingSeconds: Int = 300
     var silenceTimeoutSeconds: Int = 30
 
-    private var recorder: AudioRecorder?
+    private var recorder: (any AudioRecording)?
     private var currentSession: CaptureSession?
     private var timer: Timer?
     private var activity: Activity<CaptureActivityAttributes>?
     private var interruptionObserver: NSObjectProtocol?
     private var routeObserver: NSObjectProtocol?
     private var resetObserver: NSObjectProtocol?
-    private var modelContainer: ModelContainer?
+    private(set) var store: (any CaptureStoring)?
+
+    init(
+        audioSession: any AudioSessionProviding = AudioSessionController(),
+        recorderFactory: @escaping AudioRecorderFactory = { try AudioRecorder(captureId: $0) },
+        storageCheck: @escaping @Sendable () -> Bool = { RecordingFileStore.hasMinimumStorage() }
+    ) {
+        self.audioSession = audioSession
+        self.recorderFactory = recorderFactory
+        self.storageCheck = storageCheck
+    }
+
+    func setStore(_ store: any CaptureStoring) {
+        self.store = store
+    }
 
     func setModelContainer(_ container: ModelContainer) {
-        self.modelContainer = container
+        self.store = CaptureRepository(modelContainer: container)
     }
 
     // MARK: - Arm / Disarm
@@ -85,7 +101,7 @@ final class CaptureCoordinator {
             break
         }
 
-        guard RecordingFileStore.hasMinimumStorage() else {
+        guard storageCheck() else {
             fail(.storageInsufficient)
             return
         }
@@ -103,7 +119,7 @@ final class CaptureCoordinator {
 
         let captureId = UUID()
         do {
-            let newRecorder = try AudioRecorder(captureId: captureId)
+            let newRecorder = try recorderFactory(captureId)
             try newRecorder.start()
             self.recorder = newRecorder
         } catch let error as CaptureError {
@@ -302,20 +318,19 @@ final class CaptureCoordinator {
     // MARK: - Persistence
 
     private func persistCapture(result: RecordingResult, state: CaptureState = .saved) async {
-        guard let modelContainer else {
-            logger.error("No model container for persistence")
+        guard let store else {
+            logger.error("No store configured for persistence")
             return
         }
-        let record = CaptureRecord(
+        let data = CaptureRecordData(
             id: result.captureId,
             createdAt: currentSession?.startedAt ?? Date(),
             durationSeconds: result.durationSeconds,
             relativePath: RecordingFileStore.relativePath(for: result.captureId),
             state: state.rawValue
         )
-        let repo = CaptureRepository(modelContainer: modelContainer)
         do {
-            try await repo.save(record)
+            try await store.save(data)
         } catch {
             logger.error("Failed to persist capture: \(error.localizedDescription)")
             lastError = .metadataPersistFailed(underlying: error)

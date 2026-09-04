@@ -1,17 +1,28 @@
 import AVFoundation
 import OSLog
 
-final class AudioSessionController: Sendable {
+enum AudioPermissionStatus: Sendable {
+    case granted
+    case denied
+    case restricted
+    case undetermined
+}
+
+protocol AudioSessionProviding: Sendable {
+    func checkPermission() -> AudioPermissionStatus
+    func requestPermission() async -> Bool
+    func configureForRecording() throws
+    func activate() throws
+    func deactivate()
+    func observeInterruptions(_ handler: @escaping @Sendable (AVAudioSession.InterruptionType, AVAudioSession.InterruptionOptions) -> Void) -> NSObjectProtocol
+    func observeRouteChanges(_ handler: @escaping @Sendable (AVAudioSession.RouteChangeReason) -> Void) -> NSObjectProtocol
+    func observeMediaServicesReset(_ handler: @escaping @Sendable () -> Void) -> NSObjectProtocol
+}
+
+final class AudioSessionController: AudioSessionProviding {
     private let logger = Logger(subsystem: "com.wakecapture", category: "AudioSession")
 
-    enum PermissionStatus: Sendable {
-        case granted
-        case denied
-        case restricted
-        case undetermined
-    }
-
-    func checkPermission() -> PermissionStatus {
+    func checkPermission() -> AudioPermissionStatus {
         switch AVAudioApplication.shared.recordPermission {
         case .granted: return .granted
         case .denied: return .denied

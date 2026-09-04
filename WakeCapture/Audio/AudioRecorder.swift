@@ -1,7 +1,18 @@
 import AVFoundation
 import OSLog
 
-final class AudioRecorder: NSObject, Sendable, AVAudioRecorderDelegate {
+protocol AudioRecording: Sendable {
+    var captureId: UUID { get }
+    var fileURL: URL { get }
+    var isRecording: Bool { get }
+    func start() throws
+    func stop() async -> RecordingResult
+    func stopSync() -> RecordingResult
+}
+
+typealias AudioRecorderFactory = @Sendable (UUID) throws -> any AudioRecording
+
+final class AudioRecorder: NSObject, AudioRecording, AVAudioRecorderDelegate {
     private let logger = Logger(subsystem: "com.wakecapture", category: "AudioRecorder")
 
     private let recorder: AVAudioRecorder

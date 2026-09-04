@@ -83,6 +83,20 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.wakecapture.app.widgets
     dependencies: []
 
+  WakeCaptureTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WakeCaptureTests
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wakecapture.app.tests
+    dependencies:
+      - target: WakeCapture
+        embed: false
+
   WakeCaptureLiveActivity:
     type: app-extension
     platform: iOS
