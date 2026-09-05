@@ -23,18 +23,20 @@ The app must use Apple's normal permission, privacy-indicator, lock-screen, and 
 
 ## 1. Platform / implementation target
 
-- Language: Swift
+- Language: Swift 6.0 (strict concurrency)
 - UI: SwiftUI
-- Minimum deployment target: choose the lowest iOS version that supports the required WidgetKit/App Intents control stack; prefer the current major iOS SDK during implementation.
-- Xcode: current stable Xcode compatible with the deployment target.
+- Minimum deployment target: iOS 18.0 (required for WidgetKit Controls and AudioRecordingIntent)
+- Xcode: 26.3 or later
 - Architecture: native iOS application; do not use React Native for the system integration layer.
+- Project generation: XcodeGen (`project.yml` is the source of truth; `.xcodeproj` is not checked in)
 - Frameworks:
   - SwiftUI
   - AVFoundation
   - AppIntents
   - WidgetKit
   - ActivityKit
-  - UserNotifications only if needed
+  - SwiftData (persistence)
+  - UIKit (haptic feedback)
   - OSLog
 - Optional later:
   - Speech framework / on-device transcription where appropriate
@@ -144,6 +146,34 @@ Do not force the user to name or organize the capture.
 
 ## 4. Wake Capture state machine
 
+```
+                  arm()                    startCapture()
+ ┌──────────┐  ──────────>  ┌──────────┐  ──────────────>  ┌──────────┐
+ │ DISARMED │               │  ARMED   │                   │ STARTING │
+ └──────────┘  <──────────  └──────────┘                   └────┬─────┘
+                 disarm()       ^  ^                            │
+                                │  │            session ready   │
+                                │  │                            v
+                                │  │                       ┌──────────┐
+                   stop ok ─────┘  │                       │RECORDING │
+                   (persists as    │                       └──┬────┬──┘
+                    SAVED)         │                          │    │
+                                   │    user stop /           │    │  interruption /
+                  ┌──────────┐     │    max duration          │    │  route loss /
+                  │ STOPPING │ <───┼──────────────────────────┘    │  media reset
+                  └──────────┘     │                               │
+                                   │                               v
+                                   │                      ┌─────────────┐
+                                   └───── arm() ──────────│ INTERRUPTED │
+                                                          └─────────────┘
+
+                  ┌──────────┐
+                  │  FAILED  │ <── any state, on unrecoverable error
+                  └────┬─────┘
+                       │
+                       └───── arm() ────> ARMED
+```
+
 States:
 
 - `DISARMED`
@@ -151,16 +181,19 @@ States:
 - `STARTING`
 - `RECORDING`
 - `STOPPING`
-- `SAVED`
+- `SAVED` (persistence state only — written to `CaptureRecord.state`)
+- `INTERRUPTED` (persistence state — partial audio preserved after system interruption)
 - `FAILED`
 
 Transitions:
 
 `DISARMED -> ARMED`
 - user explicitly arms Wake Capture.
+- also: `SAVED`, `FAILED`, `INTERRUPTED` -> `ARMED` (re-arm after terminal states).
 
 `ARMED -> STARTING`
 - explicit Capture system action.
+- system entry points (WidgetKit control, Action button) auto-arm if disarmed, then start.
 
 `STARTING -> RECORDING`
 - audio session configured and recorder successfully running.
@@ -168,8 +201,14 @@ Transitions:
 `RECORDING -> STOPPING`
 - user stop action, maximum-duration limit, or configured silence timeout.
 
-`STOPPING -> SAVED`
-- file closed and metadata committed.
+`STOPPING -> ARMED`
+- file closed, metadata committed, capture persisted with `saved` state.
+- coordinator returns to `armed` so the user can immediately capture again without re-arming.
+- **Open question**: whether the post-stop state should be `ARMED` or `DISARMED`. See discussion in project notes.
+
+`RECORDING -> INTERRUPTED`
+- system audio interruption, route loss, or media services reset.
+- partial audio is finalized and persisted with `interrupted` state.
 
 Any state -> `FAILED`
 - unrecoverable permission/session/storage error.
@@ -183,11 +222,11 @@ Never transition:
 
 Implement a dedicated App Intent for capture.
 
-Recommended conceptual intents:
+Implemented intents:
 
-- `StartWakeCaptureIntent`
-- `StopWakeCaptureIntent`
-- optionally `ToggleWakeCaptureIntent` for an in-app/widget state control.
+- `StartWakeCaptureIntent` — conforms to `AudioRecordingIntent`; auto-arms if disarmed before starting.
+- `StopWakeCaptureIntent` — stops the current recording.
+- `ArmWakeCaptureIntent` / `DisarmWakeCaptureIntent` — separate intents for arming and disarming.
 
 The capture intent should be the canonical entry point used by:
 - WidgetKit Control
@@ -198,14 +237,14 @@ The capture intent should be the canonical entry point used by:
 
 Do not duplicate recording logic inside each integration.
 
-All system entry points call a shared `CaptureCoordinator`.
-
 Apple's WidgetKit controls support buttons on the Lock Screen, Control Center and Action button, and the button action is implemented with an App Intent.
 
 Important implementation detail:
 - `perform()` must complete the required state persistence/action contract.
 - Do not assume arbitrary long-running recording work can simply remain inside `perform()`.
 - Use the recording architecture required by `AudioRecordingIntent` and ActivityKit.
+
+All system entry points call a shared `CaptureCoordinator` singleton via `SharedCaptureCoordinator.shared`.
 
 ---
 
@@ -247,10 +286,12 @@ Responsibilities:
 - handle Bluetooth route changes.
 - report errors to `CaptureCoordinator`.
 
-Recommended initial configuration:
-- category appropriate for recording/voice capture.
-- mode optimized for spoken voice where supported.
-- options chosen conservatively; avoid unnecessary Bluetooth/output routing behavior.
+Current configuration:
+- category: `.record`
+- mode: `.default`
+- preferred sample rate: 44100 Hz
+- preferred input channels: 1 (mono)
+- no additional options (conservative — avoids unnecessary Bluetooth/output routing behavior)
 
 Do not over-optimize audio quality for MVP. Favor reliable voice capture and low startup latency.
 
@@ -270,12 +311,13 @@ Responsibilities:
 
 Use a format optimized for speech and reasonable storage size.
 
-Suggested MVP:
-- AAC in M4A container unless testing demonstrates a better requirement.
-- 44.1 kHz or 48 kHz.
-- mono where appropriate for voice capture.
+Current configuration:
+- AAC in M4A container (`kAudioFormatMPEG4AAC`)
+- 44.1 kHz
+- mono
+- `AVAudioQuality.high`
 
-Keep the recording API isolated so the codec can be changed later.
+The recording API is isolated behind the `AudioRecording` protocol so the codec can be changed later.
 
 ---
 
@@ -283,32 +325,31 @@ Keep the recording API isolated so the codec can be changed later.
 
 Use a small local persistence layer.
 
-Recommended MVP:
-- SQLite/Core Data/SwiftData for metadata.
+Implementation:
+- SwiftData for metadata (`CaptureRecord` model, `CaptureRepository` actor).
 - Files in Application Support for audio.
 - Never store raw audio blobs inside the database.
 
-Entity:
+Entity: `CaptureRecord`
 
-`Capture`
-- id: UUID
+- id: UUID (unique)
 - createdAt: Date
 - durationSeconds: Double
-- fileURL: relative/path-safe identifier
-- mimeType
-- codec
-- sampleRate
-- channelCount
-- state
-- transcriptStatus
-- uploadStatus
-- title: optional
-- tags: optional
+- relativePath: String (e.g. `Captures/<UUID>.m4a`)
+- mimeType: String (default `audio/mp4`)
+- codec: String (default `aac`)
+- sampleRate: Double (default `44100`)
+- channelCount: Int (default `1`)
+- state: String (maps to `CaptureState` raw values)
+- transcriptStatus: String (default `none`)
+- uploadStatus: String (default `none`)
+- title: String? (optional)
+- tags: [String]
 
 Recording files:
 `Application Support/Captures/<UUID>.m4a`
 
-Use atomic writes where possible.
+File storage is managed by `RecordingFileStore` which handles directory creation, path resolution, existence checks, deletion, and available-storage queries (minimum 50 MB required to start).
 
 A capture is successful only after:
 1. recording is finalized;
@@ -339,15 +380,21 @@ If recording is interrupted:
 - preserve partial audio.
 - do not discard user data.
 
+**Open item: device power loss / sudden process kill.**
+
+Not yet handled. The coordinator's state is in-memory only, so a kill mid-recording loses all awareness that a recording was in progress. Two problems compound here:
+
+1. **Container format.** AAC in M4A requires a `moov` atom written at finalization (`AVAudioRecorder.stop()`). If stop never runs, the file on disk contains raw audio frames but the container is invalid and most readers won't open it. CAF (Core Audio Format) is append-friendly and recoverable without finalization, which would make crash recovery possible rather than theoretical.
+
+2. **No recovery signal.** Nothing on disk tells the app that a recording was in progress when the process died. A lightweight breadcrumb file (capture ID, timestamp, file path) written at recording start and deleted on successful stop would let the app detect orphaned recordings on next launch and attempt recovery or cleanup.
+
 ---
 
 ## 11. Silence auto-stop
 
-MVP optional.
+Not yet implemented. `CaptureCoordinator` declares `silenceTimeoutSeconds` (default 30) but no silence detection logic runs yet.
 
-Implement a configurable silence detector only after reliable basic recording exists.
-
-Suggested behavior:
+When implemented:
 - user starts recording.
 - detect sustained low input level.
 - begin countdown after configured silence period.
@@ -419,58 +466,69 @@ Do not implement an always-on custom voice trigger.
 
 ## 15. Application architecture
 
-Recommended modules:
+Implemented modules:
 
 `App`
-- app lifecycle
-- dependency injection
+- `WakeCaptureApp` — app lifecycle, SwiftData container setup
 
 `CaptureCore`
-- CaptureCoordinator
-- CaptureState
-- CaptureError
-- CaptureSession
+- `CaptureCoordinator` — central state machine, orchestrates recording lifecycle
+- `CaptureState` — state enum with transition guards
+- `CaptureError` — error cases with user-facing messages
+- `CaptureSession` — value type holding per-capture metadata
+- `CaptureActivityAttributes` — Live Activity data model
 
 `Audio`
-- AudioSessionController
-- AudioRecorder
-- AudioRouteMonitor
-- AudioInterruptionHandler
+- `AudioSessionController` — AVAudioSession management, permission handling, interruption/route/reset observation
+- `AudioRecorder` — AVAudioRecorder wrapper behind `AudioRecording` protocol
 
 `SystemIntegration`
-- App Intents
-- WidgetKit Controls
-- Siri/Shortcuts
-- Live Activity
+- `SharedCaptureCoordinator` — singleton access to the coordinator
+- `StartWakeCaptureIntent` — `AudioRecordingIntent` for starting capture
+- `StopWakeCaptureIntent` — `AppIntent` for stopping capture
+- `ArmWakeCaptureIntent` / `DisarmWakeCaptureIntent` — arm/disarm intents
+- `WakeCaptureShortcuts` — Siri/Shortcuts phrase registration
+
+`SystemIntegration` (extensions)
+- `WakeCaptureWidgets` — WidgetKit control for Lock Screen / Control Center / Action button
+- `WakeCaptureLiveActivity` — Live Activity UI (`CaptureActivityView`)
 
 `Persistence`
-- CaptureRepository
-- RecordingFileStore
+- `CaptureRecord` — SwiftData model
+- `CaptureRepository` — `@ModelActor` for thread-safe persistence behind `CaptureStoring` protocol
+- `RecordingFileStore` — file path management and storage checks
 
 `UI`
-- Onboarding
-- WakeModeSettings
-- RecordingView
-- CaptureHistory
-- CaptureDetail
+- `ContentView` — root navigation
+- `OnboardingView`
+- `SettingsView`
+- `RecordingView`
+- `CaptureHistoryView`
+- `CaptureDetailView`
 
-`Processing`
+`Tests`
+- `CaptureCoordinatorTests` — unit tests with protocol-based mocks
+- `Mocks` — mock implementations of `AudioSessionProviding`, `AudioRecording`, `CaptureStoring`
+
+`Processing` (not yet implemented)
 - TranscriptionService protocol
 - SummarizationService protocol
 
-Keep `CaptureCore` independent of SwiftUI.
+`CaptureCore` and `Audio` are independent of SwiftUI. `CaptureCoordinator` uses `@MainActor @Observable` for direct SwiftUI observation rather than the `actor` pattern, since UI binding requires main-thread access and the coordinator's state is inherently tied to the UI lifecycle.
 
 ---
 
 ## 16. Threading / concurrency
 
-Use Swift Concurrency.
+Uses Swift 6.0 strict concurrency.
 
 Rules:
 - recording lifecycle must be serialized.
-- `CaptureCoordinator` should be an `actor` or otherwise enforce serialized state transitions.
+- `CaptureCoordinator` is `@MainActor @Observable` — serialization is enforced by main-actor isolation. This was chosen over `actor` because the coordinator's state drives SwiftUI views directly.
+- `CaptureRepository` is a `@ModelActor` for thread-safe SwiftData access.
+- `AudioRecorder` uses `OSAllocatedUnfairLock` for its internal state to satisfy `Sendable`.
 - UI observes state rather than mutating recording internals.
-- file finalization must complete before publishing `SAVED`.
+- file finalization must complete before persisting the capture record.
 
 Avoid race:
 `Start -> Stop -> Start` causing overlapping recorder instances.
