@@ -6,12 +6,15 @@ final class CaptureCoordinatorTests: XCTestCase {
     private var mockSession: MockAudioSession!
     private var mockStore: MockCaptureStore!
     private var lastCreatedRecorder: MockRecorder?
+    private var testDefaults: UserDefaults!
     private var sut: CaptureCoordinator!
 
     override func setUp() {
         super.setUp()
         mockSession = MockAudioSession()
         mockStore = MockCaptureStore()
+        testDefaults = UserDefaults(suiteName: "CaptureCoordinatorTests")!
+        testDefaults.removePersistentDomain(forName: "CaptureCoordinatorTests")
         sut = CaptureCoordinator(
             audioSession: mockSession,
             recorderFactory: { [weak self] captureId in
@@ -19,9 +22,15 @@ final class CaptureCoordinatorTests: XCTestCase {
                 self?.lastCreatedRecorder = recorder
                 return recorder
             },
-            storageCheck: { true }
+            storageCheck: { true },
+            autoDisarmManager: AutoDisarmManager(defaults: testDefaults)
         )
         sut.setStore(mockStore)
+    }
+
+    override func tearDown() {
+        testDefaults.removePersistentDomain(forName: "CaptureCoordinatorTests")
+        super.tearDown()
     }
 
     // MARK: - Arm / Disarm
@@ -89,7 +98,8 @@ final class CaptureCoordinatorTests: XCTestCase {
         sut = CaptureCoordinator(
             audioSession: mockSession,
             recorderFactory: { MockRecorder(captureId: $0) },
-            storageCheck: { false }
+            storageCheck: { false },
+            autoDisarmManager: AutoDisarmManager(defaults: testDefaults)
         )
         sut.arm()
 
@@ -135,7 +145,8 @@ final class CaptureCoordinatorTests: XCTestCase {
                     underlying: NSError(domain: "test", code: -1)
                 )
             },
-            storageCheck: { true }
+            storageCheck: { true },
+            autoDisarmManager: AutoDisarmManager(defaults: testDefaults)
         )
         sut.arm()
 
@@ -219,5 +230,101 @@ final class CaptureCoordinatorTests: XCTestCase {
 
         await sut.startCapture()
         XCTAssertEqual(sut.state, .recording)
+    }
+
+    // MARK: - Auto-Disarm
+
+    func test_arm_persistsTimestamp() {
+        sut.arm()
+        XCTAssertNotNil(sut.autoDisarmManager.armTimestamp())
+    }
+
+    func test_disarm_clearsTimestamp() {
+        sut.arm()
+        sut.disarm()
+        XCTAssertNil(sut.autoDisarmManager.armTimestamp())
+    }
+
+    func test_enforceExpiry_whenExpired_disarms() {
+        sut.arm()
+        let pastTimestamp = Date().addingTimeInterval(-28801).timeIntervalSince1970
+        testDefaults.set(pastTimestamp, forKey: "autoDisarm_armTimestamp")
+        testDefaults.set(AutoDisarmDuration.eightHours.rawValue, forKey: "autoDisarm_duration")
+
+        sut.enforceExpiry()
+
+        XCTAssertEqual(sut.state, .disarmed)
+    }
+
+    func test_enforceExpiry_whenNotExpired_staysArmed() {
+        sut.arm()
+        sut.enforceExpiry()
+        XCTAssertEqual(sut.state, .armed)
+    }
+
+    func test_enforceExpiry_untilManual_staysArmed() {
+        sut.autoDisarmPreset = .untilManual
+        sut.arm()
+        sut.enforceExpiry()
+        XCTAssertEqual(sut.state, .armed)
+    }
+
+    func test_startCapture_whenExpired_doesNotRecord() async {
+        sut.arm()
+        let pastTimestamp = Date().addingTimeInterval(-28801).timeIntervalSince1970
+        testDefaults.set(pastTimestamp, forKey: "autoDisarm_armTimestamp")
+        testDefaults.set(AutoDisarmDuration.eightHours.rawValue, forKey: "autoDisarm_duration")
+
+        await sut.startCapture()
+
+        XCTAssertEqual(sut.state, .disarmed)
+    }
+
+    func test_restorePersistedState_armedNotExpired() {
+        sut.autoDisarmPreset = .eightHours
+        sut.arm()
+
+        let fresh = CaptureCoordinator(
+            audioSession: mockSession,
+            recorderFactory: { MockRecorder(captureId: $0) },
+            storageCheck: { true },
+            autoDisarmManager: AutoDisarmManager(defaults: testDefaults)
+        )
+        XCTAssertEqual(fresh.state, .disarmed)
+
+        fresh.restorePersistedState()
+        XCTAssertEqual(fresh.state, .armed)
+    }
+
+    func test_restorePersistedState_armedButExpired() {
+        let pastTimestamp = Date().addingTimeInterval(-28801).timeIntervalSince1970
+        testDefaults.set(pastTimestamp, forKey: "autoDisarm_armTimestamp")
+        testDefaults.set(AutoDisarmDuration.eightHours.rawValue, forKey: "autoDisarm_duration")
+
+        let fresh = CaptureCoordinator(
+            audioSession: mockSession,
+            recorderFactory: { MockRecorder(captureId: $0) },
+            storageCheck: { true },
+            autoDisarmManager: AutoDisarmManager(defaults: testDefaults)
+        )
+        fresh.restorePersistedState()
+
+        XCTAssertEqual(fresh.state, .disarmed)
+        XCTAssertNil(fresh.autoDisarmManager.armTimestamp())
+    }
+
+    func test_stopCapture_doesNotResetAutoDisarmTimer() async {
+        sut.arm()
+        let originalTimestamp = sut.autoDisarmManager.armTimestamp()
+
+        await sut.startCapture()
+        await sut.stopCapture()
+
+        XCTAssertEqual(sut.state, .armed)
+        XCTAssertEqual(
+            sut.autoDisarmManager.armTimestamp()!.timeIntervalSince1970,
+            originalTimestamp!.timeIntervalSince1970,
+            accuracy: 1
+        )
     }
 }

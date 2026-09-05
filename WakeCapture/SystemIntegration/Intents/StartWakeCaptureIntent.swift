@@ -9,10 +9,19 @@ struct StartWakeCaptureIntent: AudioRecordingIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         let coordinator = SharedCaptureCoordinator.shared
-        if !coordinator.isArmed {
-            coordinator.arm()
+        coordinator.enforceExpiry()
+
+        guard coordinator.isArmed else {
+            throw NotArmedError()
         }
+
         await coordinator.startCapture()
         return .result()
+    }
+}
+
+private struct NotArmedError: LocalizedError {
+    var errorDescription: String? {
+        "Wake Capture is not armed. Open the app and arm it first."
     }
 }

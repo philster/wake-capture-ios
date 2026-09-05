@@ -15,6 +15,7 @@ struct WakeCaptureApp: App {
                     OnboardingView()
                 }
             }
+            .task { coordinator.restorePersistedState() }
             .environment(coordinator)
             .modelContainer(for: CaptureRecord.self) { result in
                 switch result {

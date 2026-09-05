@@ -32,6 +32,22 @@ struct HomeView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundStyle(coordinator.isArmed ? .primary : .secondary)
+
+                if coordinator.isArmed {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        let _ = coordinator.enforceExpiry()
+                        if let remaining = coordinator.autoDisarmRemainingSeconds {
+                            Text("Auto-disarm in \(formatDuration(remaining))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        } else {
+                            Text("Armed until you disarm")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
 
             Button {
@@ -87,5 +103,15 @@ struct HomeView: View {
         }
         .navigationTitle("Wake Capture")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func formatDuration(_ totalSeconds: Int) -> String {
+        let h = totalSeconds / 3600
+        let m = (totalSeconds % 3600) / 60
+        if h > 0 {
+            return String(format: "%dh %02dm", h, m)
+        }
+        let s = totalSeconds % 60
+        return String(format: "%02d:%02d", m, s)
     }
 }

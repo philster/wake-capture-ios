@@ -83,6 +83,7 @@ The app UI provides:
 
 Wake Capture:
 - Armed / Disarmed
+- Auto-disarm timer displayed when armed (shows remaining time or "Until I disarm")
 
 Preferred capture:
 - Audio
@@ -90,6 +91,14 @@ Preferred capture:
 Optional:
 - Auto-stop after silence: 30 seconds
 - Maximum recording length: configurable, e.g. 5/10/30 minutes
+- Auto-disarm after: 8 hours (default) / 12 hours / Until I disarm
+
+Auto-disarm persistence:
+- On arm, persist `armTimestamp` and `autoDisarmDuration` to UserDefaults.
+- On disarm (manual or auto), clear both values.
+- The source of truth for expiry is `armTimestamp + autoDisarmDuration > now`, not an in-memory timer. The in-memory timer is only a UI convenience for countdown display.
+- On app launch or intent invocation, evaluate expiry first. If expired, transition to `DISARMED` before processing any other action.
+- Arming must survive app termination, background kill, and device restart. iOS routinely kills background apps during sleep; tying arm state to process lifetime would break the core use case.
 
 The user installs/configures a system Capture control.
 
@@ -193,7 +202,7 @@ Transitions:
 
 `ARMED -> STARTING`
 - explicit Capture system action.
-- system entry points (WidgetKit control, Action button) auto-arm if disarmed, then start.
+- system entry points (WidgetKit control, Action button, Siri) require the user to be armed. If disarmed, the intent returns an error dialog instructing the user to arm first in the app.
 
 `STARTING -> RECORDING`
 - audio session configured and recorder successfully running.
@@ -204,7 +213,7 @@ Transitions:
 `STOPPING -> ARMED`
 - file closed, metadata committed, capture persisted with `saved` state.
 - coordinator returns to `armed` so the user can immediately capture again without re-arming.
-- **Open question**: whether the post-stop state should be `ARMED` or `DISARMED`. See discussion in project notes.
+- the auto-disarm timer (if active) continues running; it is not reset by a capture cycle.
 
 `RECORDING -> INTERRUPTED`
 - system audio interruption, route loss, or media services reset.
@@ -224,7 +233,7 @@ Implement a dedicated App Intent for capture.
 
 Implemented intents:
 
-- `StartWakeCaptureIntent` — conforms to `AudioRecordingIntent`; auto-arms if disarmed before starting.
+- `StartWakeCaptureIntent` — conforms to `AudioRecordingIntent`; requires armed state. If disarmed (or auto-disarm has expired), returns an error dialog instructing the user to arm first.
 - `StopWakeCaptureIntent` — stops the current recording.
 - `ArmWakeCaptureIntent` / `DisarmWakeCaptureIntent` — separate intents for arming and disarming.
 

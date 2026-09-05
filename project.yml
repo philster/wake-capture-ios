@@ -68,6 +68,7 @@ targets:
       - path: WakeCapture/CaptureCore/CaptureState.swift
       - path: WakeCapture/CaptureCore/CaptureError.swift
       - path: WakeCapture/CaptureCore/CaptureSession.swift
+      - path: WakeCapture/CaptureCore/AutoDisarmManager.swift
       - path: WakeCapture/Audio/AudioSessionController.swift
       - path: WakeCapture/Audio/AudioRecorder.swift
       - path: WakeCapture/Persistence/RecordingFileStore.swift
@@ -111,6 +112,7 @@ targets:
       - path: WakeCapture/CaptureCore/CaptureState.swift
       - path: WakeCapture/CaptureCore/CaptureError.swift
       - path: WakeCapture/CaptureCore/CaptureSession.swift
+      - path: WakeCapture/CaptureCore/AutoDisarmManager.swift
       - path: WakeCapture/Audio/AudioSessionController.swift
       - path: WakeCapture/Audio/AudioRecorder.swift
       - path: WakeCapture/Persistence/RecordingFileStore.swift

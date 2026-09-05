@@ -27,6 +27,21 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                Picker("Auto-disarm after", selection: Binding(
+                    get: { coordinator.autoDisarmPreset },
+                    set: { coordinator.autoDisarmPreset = $0 }
+                )) {
+                    ForEach(AutoDisarmDuration.allCases, id: \.self) { preset in
+                        Text(preset.label).tag(preset)
+                    }
+                }
+            } header: {
+                Text("Auto-Disarm")
+            } footer: {
+                Text("When armed, Wake Capture automatically disarms after this duration. Takes effect on next arm.")
+            }
+
             Section("About") {
                 LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
             }

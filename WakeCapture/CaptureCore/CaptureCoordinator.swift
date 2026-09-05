@@ -12,6 +12,7 @@ final class CaptureCoordinator {
     private let audioSession: any AudioSessionProviding
     private let recorderFactory: AudioRecorderFactory
     let storageCheck: @Sendable () -> Bool
+    let autoDisarmManager: AutoDisarmManager
 
     private(set) var state: CaptureState = .disarmed
     private(set) var elapsedSeconds: Int = 0
@@ -34,11 +35,13 @@ final class CaptureCoordinator {
     init(
         audioSession: any AudioSessionProviding = AudioSessionController(),
         recorderFactory: @escaping AudioRecorderFactory = { try AudioRecorder(captureId: $0) },
-        storageCheck: @escaping @Sendable () -> Bool = { RecordingFileStore.hasMinimumStorage() }
+        storageCheck: @escaping @Sendable () -> Bool = { RecordingFileStore.hasMinimumStorage() },
+        autoDisarmManager: AutoDisarmManager = AutoDisarmManager()
     ) {
         self.audioSession = audioSession
         self.recorderFactory = recorderFactory
         self.storageCheck = storageCheck
+        self.autoDisarmManager = autoDisarmManager
     }
 
     func setStore(_ store: any CaptureStoring) {
@@ -63,18 +66,50 @@ final class CaptureCoordinator {
         guard state == .disarmed || state == .saved || state == .failed else { return }
         state = .armed
         lastError = nil
+        autoDisarmManager.recordArm()
         logger.info("Wake Capture armed")
     }
 
     func disarm() {
         guard !state.isActive else { return }
         state = .disarmed
+        autoDisarmManager.clearArm()
         logger.info("Wake Capture disarmed")
+    }
+
+    func enforceExpiry() {
+        if state == .armed && autoDisarmManager.isExpired() {
+            state = .disarmed
+            autoDisarmManager.clearArm()
+            logger.info("Auto-disarmed: timer expired")
+        }
+    }
+
+    func restorePersistedState() {
+        guard state == .disarmed else { return }
+        guard autoDisarmManager.armTimestamp() != nil else { return }
+        if autoDisarmManager.isExpired() {
+            autoDisarmManager.clearArm()
+        } else {
+            state = .armed
+            lastError = nil
+            logger.info("Restored armed state from persistence")
+        }
+    }
+
+    var autoDisarmRemainingSeconds: Int? {
+        autoDisarmManager.remainingSeconds()
+    }
+
+    var autoDisarmPreset: AutoDisarmDuration {
+        get { autoDisarmManager.selectedPreset }
+        set { autoDisarmManager.selectedPreset = newValue }
     }
 
     // MARK: - Start Capture
 
     func startCapture() async {
+        enforceExpiry()
         guard state.canStartCapture else {
             lastError = .invalidStateTransition(from: state, attempted: "startCapture")
             return

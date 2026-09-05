@@ -16,11 +16,13 @@ Half-asleep ideas vanish in seconds. By the time you've unlocked your phone, ope
 
 ## How it works
 
-1. Open the app before bed, tap **Arm Wake Capture**
+1. Open the app before bed, tap **Arm Wake Capture** — a timer starts counting down (8 hours by default; configurable in Settings)
 2. Lock your phone
 3. When you wake up with something to say, hit the capture control (lock screen, action button, or Control Center)
 4. Speak
 5. Tap stop, or let the max-duration timer end it
+
+If the timer runs out before you wake up, the app disarms itself. Arming persists through app kills and device restarts — iOS will terminate the app overnight, and it'll still be armed when you need it.
 
 Recordings are stored on-device as M4A files. No network connection required, no cloud sync, no account.
 
@@ -63,6 +65,8 @@ WakeCaptureTests/     Unit tests with protocol-based mocks
 ## System entry points
 
 The app registers a WidgetKit `ControlWidget` that works from the lock screen, Control Center, and the Action button on supported iPhones. `StartWakeCaptureIntent` conforms to `AudioRecordingIntent`, which tells iOS this app records audio and keeps a Live Activity running for the duration.
+
+All external triggers (lock screen, Action button, Siri) require the app to be armed first. If you forgot to arm, or the auto-disarm timer expired, the intent shows an error instead of recording. This is deliberate — it prevents Siri misfires and pocket taps from starting recordings you didn't ask for.
 
 Siri shortcuts are registered for start, stop, arm, and disarm.
 
