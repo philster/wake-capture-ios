@@ -2,6 +2,14 @@
 
 Audio capture app for iOS, built for the moment between sleep and awake. You arm it before bed, lock your phone, and when a thought hits at 3am you press one button on the lock screen to start recording. No unlocking, no navigating, no typing.
 
+<p align="center">
+  <img src="docs/screenshots/01_home_armed.png" alt="Home screen — armed and ready" width="250">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/02_recording.png" alt="Recording in progress" width="250">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/03_capture_history.png" alt="Capture history" width="250">
+</p>
+
 ## Why
 
 Half-asleep ideas vanish in seconds. By the time you've unlocked your phone, opened Notes, and started typing, the thought is gone. Wake Capture skips all of that. One tap from the lock screen, speak, done. The recording saves locally and you deal with it in the morning.
