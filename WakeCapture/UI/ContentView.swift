@@ -68,6 +68,7 @@ struct HomeView: View {
             .tint(coordinator.isArmed ? .gray : .green)
             .padding(.horizontal, 40)
             .accessibilityHint(coordinator.isArmed ? "Disarms wake capture" : "Arms wake capture for recording")
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: coordinator.isArmed)
 
             if coordinator.isArmed {
                 Button {
@@ -82,10 +83,12 @@ struct HomeView: View {
                 .tint(.red)
                 .padding(.horizontal, 40)
                 .accessibilityHint("Begins audio recording immediately")
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
 
             Spacer()
         }
+        .animation(reduceMotion ? nil : .default, value: coordinator.isArmed)
         .navigationTitle("Wake Capture")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

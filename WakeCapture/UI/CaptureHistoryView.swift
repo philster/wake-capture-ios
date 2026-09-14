@@ -7,7 +7,7 @@ struct CaptureHistoryView: View {
     @State private var pendingDeleteOffsets: IndexSet?
 
     var body: some View {
-        List {
+        Group {
             if captures.isEmpty {
                 ContentUnavailableView(
                     "No Captures",
@@ -15,15 +15,17 @@ struct CaptureHistoryView: View {
                     description: Text("Your recordings will appear here.")
                 )
             } else {
-                ForEach(captures) { capture in
-                    NavigationLink {
-                        CaptureDetailView(capture: capture)
-                    } label: {
-                        CaptureRow(capture: capture)
+                List {
+                    ForEach(captures) { capture in
+                        NavigationLink {
+                            CaptureDetailView(capture: capture)
+                        } label: {
+                            CaptureRow(capture: capture)
+                        }
                     }
-                }
-                .onDelete { offsets in
-                    pendingDeleteOffsets = offsets
+                    .onDelete { offsets in
+                        pendingDeleteOffsets = offsets
+                    }
                 }
             }
         }

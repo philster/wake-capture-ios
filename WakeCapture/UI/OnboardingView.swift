@@ -34,6 +34,7 @@ struct OnboardingView: View {
             Spacer()
             Button("Next") { page = 1 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .accessibilityHint("Go to microphone access page")
             Spacer().frame(height: 60)
         }
@@ -62,6 +63,7 @@ struct OnboardingView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .accessibilityHint("Requests microphone permission")
             Button("Skip for now") { page = 2 }
                 .font(.callout)
@@ -90,6 +92,7 @@ struct OnboardingView: View {
                 hasCompleted = true
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .accessibilityHint("Completes setup and opens the app")
             Spacer().frame(height: 60)
         }
