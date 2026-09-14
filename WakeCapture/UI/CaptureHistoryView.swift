@@ -4,7 +4,7 @@ import SwiftUI
 struct CaptureHistoryView: View {
     @Query(sort: \CaptureRecord.createdAt, order: .reverse) private var captures: [CaptureRecord]
     @Environment(\.modelContext) private var modelContext
-    @State private var pendingDeleteOffsets: IndexSet?
+    @State private var recordToDelete: CaptureRecord?
 
     var body: some View {
         Group {
@@ -22,39 +22,40 @@ struct CaptureHistoryView: View {
                         } label: {
                             CaptureRow(capture: capture)
                         }
-                    }
-                    .onDelete { offsets in
-                        pendingDeleteOffsets = offsets
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                recordToDelete = capture
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
         }
         .navigationTitle("Captures")
         .confirmationDialog(
-            "Delete Recording",
+            "Delete Recording?",
             isPresented: Binding(
-                get: { pendingDeleteOffsets != nil },
-                set: { if !$0 { pendingDeleteOffsets = nil } }
+                get: { recordToDelete != nil },
+                set: { if !$0 { recordToDelete = nil } }
             ),
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                if let offsets = pendingDeleteOffsets {
-                    deleteCapturesAt(offsets)
+                if let record = recordToDelete {
+                    deleteCapture(record)
                 }
-                pendingDeleteOffsets = nil
+                recordToDelete = nil
             }
         } message: {
             Text("This recording will be permanently deleted.")
         }
     }
 
-    private func deleteCapturesAt(_ offsets: IndexSet) {
-        for index in offsets {
-            let capture = captures[index]
-            try? RecordingFileStore.deleteFile(for: capture.id)
-            modelContext.delete(capture)
-        }
+    private func deleteCapture(_ capture: CaptureRecord) {
+        try? RecordingFileStore.deleteFile(for: capture.id)
+        modelContext.delete(capture)
         try? modelContext.save()
     }
 }
