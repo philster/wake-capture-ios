@@ -36,7 +36,7 @@ The app must use Apple's normal permission, privacy-indicator, lock-screen, and 
   - WidgetKit
   - ActivityKit
   - SwiftData (persistence)
-  - UIKit (haptic feedback)
+  - SwiftUI sensory feedback (`.sensoryFeedback`)
   - OSLog
 - Optional later:
   - Speech framework / on-device transcription where appropriate
@@ -89,8 +89,8 @@ Preferred capture:
 - Audio
 
 Optional:
-- Auto-stop after silence: 30 seconds
-- Maximum recording length: configurable, e.g. 5/10/30 minutes
+- Auto-stop after silence: configurable via Picker (10, 15, 30, 45, 60, 90, 120 seconds; default 30)
+- Maximum recording length: configurable via Picker (1, 2, 5, 10, 15, 30 minutes; default 5)
 - Auto-disarm after: 8 hours (default) / 12 hours / Until I disarm
 
 Auto-disarm persistence:
@@ -123,19 +123,28 @@ If the OS requires authentication or does not permit the requested operation fro
 
 When the app process/recording surface is available:
 
-- Large recording state.
-- Elapsed time.
-- Very large Stop action.
+- Large recording state indicator with pulsing dot (respects Reduce Motion).
+- Elapsed time in monospaced font (scales with Dynamic Type, capped at accessibility3).
+- Very large Stop action (scales via `@ScaledMetric`).
 - No title/category/tag prompts.
 - No confirmation dialog.
 - Autosave.
-- Optional haptic feedback for start/stop when the OS context permits it.
+- Haptic feedback via `.sensoryFeedback` for arm/disarm state changes.
+- Respects system color scheme (no forced dark mode).
+- Full VoiceOver support: stop button labeled, elapsed time announced, decorative elements hidden.
 
 Example conceptual state:
 
 RECORDING
 00:17
 [ STOP ]
+
+### 3.3.1 Capture history
+
+- List of past recordings sorted newest-first.
+- Swipe-to-delete with confirmation dialog (item-bound `.confirmationDialog` for correct iOS 26 anchoring).
+- Empty state uses `ContentUnavailableView`.
+- Each row shows date, duration, and status with combined accessibility label.
 
 ### 3.4 Post-capture
 
@@ -544,7 +553,22 @@ Avoid race:
 
 ---
 
-## 17. MVP acceptance tests
+## 17. Accessibility and HIG compliance
+
+Implemented per Apple Human Interface Guidelines audit (see `docs/HIG_FINAL_REPORT.md`):
+
+- **VoiceOver**: All interactive elements have `.accessibilityLabel`, `.accessibilityHint`, and appropriate traits. Decorative elements hidden. Related content grouped with `.accessibilityElement(children: .combine)`.
+- **Dynamic Type**: All text uses semantic text styles. Fixed sizes replaced with `@ScaledMetric`. Extreme scaling capped at `.accessibility3` where layout would break.
+- **Reduce Motion**: Pulsing recording dot and symbol transitions conditional on `@Environment(\.accessibilityReduceMotion)`.
+- **Color scheme**: Respects system Light/Dark mode. No forced color scheme overrides. Semantic system colors used for backgrounds and text.
+- **Haptics**: `.sensoryFeedback(.impact(flexibility: .soft))` on arm/disarm state change (pure SwiftUI, no UIKit).
+- **Navigation**: Settings in toolbar (`.primaryAction`), History in bottom toolbar. Standard iOS patterns.
+- **Destructive actions**: Delete confirmation via item-bound `.confirmationDialog`.
+- **Error handling**: Errors surfaced via `.alert()`, not inline text.
+
+---
+
+## 18. MVP acceptance tests
 
 ### Permission
 - Fresh install -> microphone permission requested.
@@ -586,7 +610,7 @@ For every entry point record:
 
 ---
 
-## 18. Critical feasibility gate
+## 19. Critical feasibility gate
 
 Before building AI/cloud functionality, prove this exact flow on physical hardware:
 
@@ -596,7 +620,7 @@ Do not declare the MVP platform-feasible based only on simulator behavior.
 
 ---
 
-## 19. Non-goals
+## 20. Non-goals
 
 Do not implement:
 - video capture
@@ -611,7 +635,7 @@ Do not implement:
 
 ---
 
-## 20. Current Apple API references
+## 21. Current Apple API references
 
 - WidgetKit Controls: https://developer.apple.com/documentation/widgetkit/controls-collection
 - Controls from Lock Screen/Control Center/Action button: https://developer.apple.com/documentation/WidgetKit/Creating-controls-to-perform-actions-across-the-system
