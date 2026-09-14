@@ -4,6 +4,7 @@ import SwiftUI
 struct CaptureHistoryView: View {
     @Query(sort: \CaptureRecord.createdAt, order: .reverse) private var captures: [CaptureRecord]
     @Environment(\.modelContext) private var modelContext
+    @State private var pendingDeleteOffsets: IndexSet?
 
     var body: some View {
         List {
@@ -21,10 +22,29 @@ struct CaptureHistoryView: View {
                         CaptureRow(capture: capture)
                     }
                 }
-                .onDelete(perform: deleteCapturesAt)
+                .onDelete { offsets in
+                    pendingDeleteOffsets = offsets
+                }
             }
         }
         .navigationTitle("Captures")
+        .confirmationDialog(
+            "Delete Recording",
+            isPresented: Binding(
+                get: { pendingDeleteOffsets != nil },
+                set: { if !$0 { pendingDeleteOffsets = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let offsets = pendingDeleteOffsets {
+                    deleteCapturesAt(offsets)
+                }
+                pendingDeleteOffsets = nil
+            }
+        } message: {
+            Text("This recording will be permanently deleted.")
+        }
     }
 
     private func deleteCapturesAt(_ offsets: IndexSet) {

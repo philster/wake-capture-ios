@@ -16,7 +16,7 @@ final class CaptureCoordinator {
 
     private(set) var state: CaptureState = .disarmed
     private(set) var elapsedSeconds: Int = 0
-    private(set) var lastError: CaptureError?
+    var lastError: CaptureError?
 
     var isArmed: Bool { state == .armed }
 

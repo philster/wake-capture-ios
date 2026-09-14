@@ -6,6 +6,7 @@ struct CaptureDetailView: View {
     @State private var isPlaying = false
     @State private var player: AVAudioPlayer?
     @State private var playerDelegate = PlayerDelegate()
+    @State private var playbackError: String?
 
     var body: some View {
         List {
@@ -39,6 +40,16 @@ struct CaptureDetailView: View {
         .onDisappear {
             player?.stop()
         }
+        .alert("Playback Error", isPresented: Binding(
+            get: { playbackError != nil },
+            set: { if !$0 { playbackError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let playbackError {
+                Text(playbackError)
+            }
+        }
     }
 
     private var formattedDuration: String {
@@ -71,6 +82,7 @@ struct CaptureDetailView: View {
             isPlaying = true
         } catch {
             isPlaying = false
+            playbackError = "Could not play recording."
         }
     }
 }

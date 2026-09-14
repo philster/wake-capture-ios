@@ -52,7 +52,6 @@ struct RecordingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.black)
-        .preferredColorScheme(.dark)
+        .background(Color(.systemBackground))
     }
 }

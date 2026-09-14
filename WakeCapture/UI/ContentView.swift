@@ -84,33 +84,38 @@ struct HomeView: View {
                 .accessibilityHint("Begins audio recording immediately")
             }
 
-            if let error = coordinator.lastError {
-                Text(error.userMessage)
-                    .font(.callout)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .accessibilityLabel("Error: \(error.userMessage)")
-            }
-
             Spacer()
-
-            NavigationLink {
-                CaptureHistoryView()
-            } label: {
-                Label("Capture History", systemImage: "list.bullet")
-            }
-            .padding(.bottom, 8)
-
-            NavigationLink {
-                SettingsView()
-            } label: {
-                Label("Settings", systemImage: "gear")
-            }
-            .padding(.bottom, 32)
         }
         .navigationTitle("Wake Capture")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    Label("Settings", systemImage: "gear")
+                }
+            }
+            ToolbarItem(placement: .bottomBar) {
+                NavigationLink {
+                    CaptureHistoryView()
+                } label: {
+                    Label("Capture History", systemImage: "list.bullet")
+                }
+            }
+        }
+        .alert(
+            "Error",
+            isPresented: Binding(
+                get: { coordinator.lastError != nil },
+                set: { if !$0 { coordinator.lastError = nil } }
+            ),
+            presenting: coordinator.lastError
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { error in
+            Text(error.userMessage)
+        }
     }
 
     private func formatDuration(_ totalSeconds: Int) -> String {
