@@ -14,7 +14,7 @@ struct CaptureActivityView: Widget {
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text(formatTime(context.state.elapsedSeconds))
-                        .font(.system(size: 28, weight: .medium, design: .monospaced))
+                        .font(.system(.title2, design: .monospaced, weight: .medium))
                         .monospacedDigit()
                 }
                 DynamicIslandExpandedRegion(.trailing) {
@@ -48,7 +48,7 @@ struct CaptureActivityView: Widget {
                         .font(.subheadline.weight(.semibold))
                 }
                 Text(formatTime(context.state.elapsedSeconds))
-                    .font(.system(size: 32, weight: .medium, design: .monospaced))
+                    .font(.system(.title, design: .monospaced, weight: .medium))
                     .monospacedDigit()
             }
             Spacer()

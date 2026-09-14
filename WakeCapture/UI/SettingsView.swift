@@ -2,28 +2,31 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(CaptureCoordinator.self) private var coordinator
-    @State private var maxMinutes: Double = 5
-    @State private var silenceTimeout: Double = 30
+
+    private static let maxRecordingOptions = [1, 2, 5, 10, 15, 30]
+    private static let silenceTimeoutOptions = [10, 15, 30, 45, 60, 90, 120]
 
     var body: some View {
         @Bindable var coord = coordinator
 
         Form {
             Section("Recording") {
-                VStack(alignment: .leading) {
-                    Text("Max recording: \(Int(maxMinutes)) min")
-                    Slider(value: $maxMinutes, in: 1...30, step: 1)
-                }
-                .onChange(of: maxMinutes) { _, newValue in
-                    coordinator.maxRecordingSeconds = Int(newValue) * 60
+                Picker("Max recording", selection: Binding(
+                    get: { coordinator.maxRecordingSeconds / 60 },
+                    set: { coordinator.maxRecordingSeconds = $0 * 60 }
+                )) {
+                    ForEach(Self.maxRecordingOptions, id: \.self) { minutes in
+                        Text("\(minutes) min").tag(minutes)
+                    }
                 }
 
-                VStack(alignment: .leading) {
-                    Text("Silence auto-stop: \(Int(silenceTimeout))s")
-                    Slider(value: $silenceTimeout, in: 10...120, step: 5)
-                }
-                .onChange(of: silenceTimeout) { _, newValue in
-                    coordinator.silenceTimeoutSeconds = Int(newValue)
+                Picker("Silence auto-stop", selection: Binding(
+                    get: { coordinator.silenceTimeoutSeconds },
+                    set: { coordinator.silenceTimeoutSeconds = $0 }
+                )) {
+                    ForEach(Self.silenceTimeoutOptions, id: \.self) { seconds in
+                        Text("\(seconds)s").tag(seconds)
+                    }
                 }
             }
 
@@ -47,9 +50,5 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .onAppear {
-            maxMinutes = Double(coordinator.maxRecordingSeconds / 60)
-            silenceTimeout = Double(coordinator.silenceTimeoutSeconds)
-        }
     }
 }

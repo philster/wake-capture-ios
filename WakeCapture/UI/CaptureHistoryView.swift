@@ -73,7 +73,6 @@ struct CaptureRow: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(capture.title ?? formattedDate), \(formattedDuration), \(capture.state)")
     }
