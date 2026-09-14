@@ -24,6 +24,8 @@ struct CaptureDetailView: View {
                           systemImage: isPlaying ? "stop.fill" : "play.fill")
                 }
                 .disabled(!fileExists)
+                .accessibilityLabel(isPlaying ? "Stop playback" : "Play recording")
+                .accessibilityHint(isPlaying ? "Stops audio playback" : "Plays back this capture")
             }
 
             if let title = capture.title {

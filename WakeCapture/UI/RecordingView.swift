@@ -2,26 +2,36 @@ import SwiftUI
 
 struct RecordingView: View {
     @Environment(CaptureCoordinator.self) private var coordinator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var stopButtonSize: CGFloat = 140
 
     var body: some View {
         VStack(spacing: 48) {
             Spacer()
 
             Text("RECORDING")
-                .font(.system(size: 20, weight: .bold, design: .monospaced))
+                .font(.headline)
+                .textCase(.uppercase)
                 .foregroundStyle(.red)
                 .opacity(coordinator.state == .recording ? 1 : 0.4)
+                .accessibilityAddTraits(.isHeader)
 
             Text(coordinator.formattedElapsed)
-                .font(.system(size: 72, weight: .light, design: .monospaced))
+                .font(.system(.largeTitle, design: .monospaced, weight: .light))
+                .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                 .monospacedDigit()
                 .contentTransition(.numericText())
+                .accessibilityLabel("Elapsed time: \(coordinator.formattedElapsed)")
 
             Circle()
                 .fill(.red)
                 .frame(width: 12, height: 12)
                 .opacity(coordinator.state == .recording ? 1 : 0)
-                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: coordinator.state)
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                    value: coordinator.state
+                )
+                .accessibilityHidden(true)
 
             Spacer()
 
@@ -29,12 +39,15 @@ struct RecordingView: View {
                 Task { await coordinator.stopCapture() }
             } label: {
                 Text("STOP")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.title2.bold())
+                    .textCase(.uppercase)
                     .foregroundStyle(.white)
-                    .frame(width: 140, height: 140)
+                    .frame(width: stopButtonSize, height: stopButtonSize)
                     .background(.red, in: Circle())
             }
             .disabled(coordinator.state != .recording)
+            .accessibilityLabel("Stop recording")
+            .accessibilityHint("Stops the current capture and saves it")
 
             Spacer()
         }

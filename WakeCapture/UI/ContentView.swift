@@ -17,6 +17,8 @@ struct ContentView: View {
 
 struct HomeView: View {
     @Environment(CaptureCoordinator.self) private var coordinator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 80
 
     var body: some View {
         VStack(spacing: 40) {
@@ -24,14 +26,16 @@ struct HomeView: View {
 
             VStack(spacing: 12) {
                 Image(systemName: coordinator.isArmed ? "mic.circle.fill" : "mic.circle")
-                    .font(.system(size: 80))
+                    .font(.system(size: iconSize))
                     .foregroundStyle(coordinator.isArmed ? .green : .secondary)
-                    .contentTransition(.symbolEffect(.replace))
+                    .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                    .accessibilityHidden(true)
 
                 Text(coordinator.isArmed ? "Armed" : "Disarmed")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundStyle(coordinator.isArmed ? .primary : .secondary)
+                    .accessibilityAddTraits(.isHeader)
 
                 if coordinator.isArmed {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
@@ -49,6 +53,7 @@ struct HomeView: View {
                     }
                 }
             }
+            .accessibilityElement(children: .combine)
 
             Button {
                 coordinator.toggleArmed()
@@ -62,6 +67,7 @@ struct HomeView: View {
             .buttonStyle(.borderedProminent)
             .tint(coordinator.isArmed ? .gray : .green)
             .padding(.horizontal, 40)
+            .accessibilityHint(coordinator.isArmed ? "Disarms wake capture" : "Arms wake capture for recording")
 
             if coordinator.isArmed {
                 Button {
@@ -75,6 +81,7 @@ struct HomeView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
                 .padding(.horizontal, 40)
+                .accessibilityHint("Begins audio recording immediately")
             }
 
             if let error = coordinator.lastError {
@@ -83,6 +90,7 @@ struct HomeView: View {
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+                    .accessibilityLabel("Error: \(error.userMessage)")
             }
 
             Spacer()

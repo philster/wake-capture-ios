@@ -54,6 +54,8 @@ struct CaptureRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(capture.title ?? formattedDate), \(formattedDuration), \(capture.state)")
     }
 
     private var formattedDate: String {
