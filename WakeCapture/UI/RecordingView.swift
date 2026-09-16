@@ -3,12 +3,23 @@ import SwiftUI
 struct RecordingView: View {
     @Environment(CaptureCoordinator.self) private var coordinator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ScaledMetric(relativeTo: .largeTitle) private var stopButtonSize: CGFloat = 140
 
     var body: some View {
-        VStack(spacing: 48) {
-            Spacer()
+        Group {
+            if verticalSizeClass == .compact {
+                compactLayout
+            } else {
+                regularLayout
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
 
+    private var statusSection: some View {
+        VStack(spacing: 16) {
             Text("RECORDING")
                 .font(.headline)
                 .textCase(.uppercase)
@@ -32,26 +43,42 @@ struct RecordingView: View {
                     value: coordinator.state
                 )
                 .accessibilityHidden(true)
+        }
+    }
 
+    private var stopButton: some View {
+        Button {
+            Task { await coordinator.stopCapture() }
+        } label: {
+            Text("STOP")
+                .font(.title2.bold())
+                .textCase(.uppercase)
+                .foregroundStyle(.white)
+                .frame(width: stopButtonSize, height: stopButtonSize)
+                .background(.red, in: Circle())
+        }
+        .disabled(coordinator.state != .recording)
+        .accessibilityLabel("Stop recording")
+        .accessibilityHint("Stops the current capture and saves it")
+    }
+
+    private var regularLayout: some View {
+        VStack(spacing: 48) {
             Spacer()
-
-            Button {
-                Task { await coordinator.stopCapture() }
-            } label: {
-                Text("STOP")
-                    .font(.title2.bold())
-                    .textCase(.uppercase)
-                    .foregroundStyle(.white)
-                    .frame(width: stopButtonSize, height: stopButtonSize)
-                    .background(.red, in: Circle())
-            }
-            .disabled(coordinator.state != .recording)
-            .accessibilityLabel("Stop recording")
-            .accessibilityHint("Stops the current capture and saves it")
-
+            statusSection
+            Spacer()
+            stopButton
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+    }
+
+    private var compactLayout: some View {
+        HStack(spacing: 32) {
+            statusSection
+                .frame(maxWidth: .infinity)
+            stopButton
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 24)
     }
 }

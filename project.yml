@@ -36,6 +36,13 @@ targets:
           - "**/.DS_Store"
     info:
       path: WakeCapture/Info.plist
+      properties:
+        UIRequiresFullScreen: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     entitlements:
       path: WakeCapture/WakeCapture.entitlements
     settings:

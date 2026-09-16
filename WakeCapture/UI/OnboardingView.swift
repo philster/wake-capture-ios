@@ -17,45 +17,27 @@ struct OnboardingView: View {
     }
 
     private var welcomePage: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            Image(systemName: "moon.zzz.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(.indigo)
-                .accessibilityHidden(true)
-            Text("Wake Capture")
-                .font(.largeTitle.bold())
-                .accessibilityAddTraits(.isHeader)
-            Text("Capture thoughts the moment you wake — before they fade.")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-                .foregroundStyle(.secondary)
-            Spacer()
+        OnboardingPage(
+            icon: "moon.zzz.fill",
+            iconColor: .indigo,
+            title: "Wake Capture",
+            titleFont: .largeTitle.bold(),
+            subtitle: "Capture thoughts the moment you wake — before they fade."
+        ) {
             Button("Next") { page = 1 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .accessibilityHint("Go to microphone access page")
-            Spacer().frame(height: 60)
         }
     }
 
     private var microphonePage: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            Image(systemName: "mic.badge.plus")
-                .font(.system(size: 80))
-                .foregroundStyle(.green)
-                .accessibilityHidden(true)
-            Text("Microphone Access")
-                .font(.title.bold())
-                .accessibilityAddTraits(.isHeader)
-            Text("Wake Capture needs microphone access to record your voice. The mic is only active while you're recording — never in the background.")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .foregroundStyle(.secondary)
-            Spacer()
+        OnboardingPage(
+            icon: "mic.badge.plus",
+            iconColor: .green,
+            title: "Microphone Access",
+            subtitle: "Wake Capture needs microphone access to record your voice. The mic is only active while you're recording — never in the background."
+        ) {
             Button("Grant Access") {
                 Task {
                     _ = await AudioSessionController().requestPermission()
@@ -68,33 +50,83 @@ struct OnboardingView: View {
             Button("Skip for now") { page = 2 }
                 .font(.callout)
                 .accessibilityHint("Continue without granting microphone access")
-            Spacer().frame(height: 60)
         }
     }
 
     private var controlPage: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            Image(systemName: "lock.shield")
-                .font(.system(size: 80))
-                .foregroundStyle(.blue)
-                .accessibilityHidden(true)
-            Text("Lock Screen Control")
-                .font(.title.bold())
-                .accessibilityAddTraits(.isHeader)
-            Text("Add the Wake Capture control to your Lock Screen or Control Center for instant access.")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .foregroundStyle(.secondary)
-            Spacer()
+        OnboardingPage(
+            icon: "lock.shield",
+            iconColor: .blue,
+            title: "Lock Screen Control",
+            subtitle: "Add the Wake Capture control to your Lock Screen or Control Center for instant access."
+        ) {
             Button("Get Started") {
                 hasCompleted = true
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .accessibilityHint("Completes setup and opens the app")
-            Spacer().frame(height: 60)
         }
+    }
+}
+
+private struct OnboardingPage<Actions: View>: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    var titleFont: Font = .title.bold()
+    let subtitle: String
+    @ViewBuilder let actions: () -> Actions
+
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    var body: some View {
+        if verticalSizeClass == .compact {
+            compactLayout
+        } else {
+            regularLayout
+        }
+    }
+
+    private var illustration: some View {
+        Image(systemName: icon)
+            .font(.system(size: 80))
+            .foregroundStyle(iconColor)
+            .accessibilityHidden(true)
+    }
+
+    private var textAndActions: some View {
+        VStack(spacing: 24) {
+            Text(title)
+                .font(titleFont)
+                .accessibilityAddTraits(.isHeader)
+            Text(subtitle)
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            actions()
+        }
+    }
+
+    private var regularLayout: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            illustration
+            textAndActions
+                .padding(.horizontal, 40)
+            Spacer()
+            Spacer().frame(height: 40)
+        }
+    }
+
+    private var compactLayout: some View {
+        HStack(spacing: 32) {
+            illustration
+                .frame(maxWidth: .infinity)
+            textAndActions
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxHeight: .infinity)
     }
 }

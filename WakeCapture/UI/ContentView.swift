@@ -18,75 +18,16 @@ struct ContentView: View {
 struct HomeView: View {
     @Environment(CaptureCoordinator.self) private var coordinator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 80
 
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
-
-            VStack(spacing: 12) {
-                Image(systemName: coordinator.isArmed ? "mic.circle.fill" : "mic.circle")
-                    .font(.system(size: iconSize))
-                    .foregroundStyle(coordinator.isArmed ? .green : .secondary)
-                    .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
-                    .accessibilityHidden(true)
-
-                Text(coordinator.isArmed ? "Armed" : "Disarmed")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(coordinator.isArmed ? .primary : .secondary)
-                    .accessibilityAddTraits(.isHeader)
-
-                if coordinator.isArmed {
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        let _ = coordinator.enforceExpiry()
-                        if let remaining = coordinator.autoDisarmRemainingSeconds {
-                            Text("Auto-disarm in \(formatDuration(remaining))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        } else {
-                            Text("Armed until you disarm")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+        Group {
+            if verticalSizeClass == .compact {
+                compactLayout
+            } else {
+                regularLayout
             }
-            .accessibilityElement(children: .combine)
-
-            Button {
-                coordinator.toggleArmed()
-            } label: {
-                Text(coordinator.isArmed ? "Disarm" : "Arm Wake Capture")
-                    .font(.title3)
-                    .fontWeight(.medium)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(coordinator.isArmed ? .gray : .green)
-            .padding(.horizontal, 40)
-            .accessibilityHint(coordinator.isArmed ? "Disarms wake capture" : "Arms wake capture for recording")
-            .sensoryFeedback(.impact(flexibility: .soft), trigger: coordinator.isArmed)
-
-            if coordinator.isArmed {
-                Button {
-                    Task { await coordinator.startCapture() }
-                } label: {
-                    Label("Start Capture", systemImage: "record.circle")
-                        .font(.title3)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-                .padding(.horizontal, 40)
-                .accessibilityHint("Begins audio recording immediately")
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-
-            Spacer()
         }
         .animation(reduceMotion ? nil : .default, value: coordinator.isArmed)
         .navigationTitle("Wake Capture")
@@ -117,6 +58,93 @@ struct HomeView: View {
         } message: { error in
             Text(error.userMessage)
         }
+    }
+
+    private var statusSection: some View {
+        VStack(spacing: 12) {
+            Image(systemName: coordinator.isArmed ? "mic.circle.fill" : "mic.circle")
+                .font(.system(size: iconSize))
+                .foregroundStyle(coordinator.isArmed ? .green : .secondary)
+                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                .accessibilityHidden(true)
+
+            Text(coordinator.isArmed ? "Armed" : "Disarmed")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(coordinator.isArmed ? .primary : .secondary)
+                .accessibilityAddTraits(.isHeader)
+
+            if coordinator.isArmed {
+                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    let _ = coordinator.enforceExpiry()
+                    if let remaining = coordinator.autoDisarmRemainingSeconds {
+                        Text("Auto-disarm in \(formatDuration(remaining))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    } else {
+                        Text("Armed until you disarm")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var buttonsSection: some View {
+        VStack(spacing: 16) {
+            Button {
+                coordinator.toggleArmed()
+            } label: {
+                Text(coordinator.isArmed ? "Disarm" : "Arm Wake Capture")
+                    .font(.title3)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(coordinator.isArmed ? .gray : .green)
+            .accessibilityHint(coordinator.isArmed ? "Disarms wake capture" : "Arms wake capture for recording")
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: coordinator.isArmed)
+
+            if coordinator.isArmed {
+                Button {
+                    Task { await coordinator.startCapture() }
+                } label: {
+                    Label("Start Capture", systemImage: "record.circle")
+                        .font(.title3)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .accessibilityHint("Begins audio recording immediately")
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            }
+        }
+    }
+
+    private var regularLayout: some View {
+        VStack(spacing: 40) {
+            Spacer()
+            statusSection
+            buttonsSection
+                .padding(.horizontal, 40)
+            Spacer()
+        }
+    }
+
+    private var compactLayout: some View {
+        HStack(spacing: 32) {
+            statusSection
+                .frame(maxWidth: .infinity)
+            buttonsSection
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxHeight: .infinity)
     }
 
     private func formatDuration(_ totalSeconds: Int) -> String {
