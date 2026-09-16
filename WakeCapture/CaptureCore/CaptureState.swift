@@ -8,6 +8,7 @@ enum CaptureState: String, Sendable, Codable {
     case stopping
     case saved
     case failed
+    case permissionNeeded
     case interrupted
 
     var isActive: Bool {

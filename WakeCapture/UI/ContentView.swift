@@ -7,6 +7,8 @@ struct ContentView: View {
         switch coordinator.state {
         case .recording, .starting, .stopping:
             RecordingView()
+        case .permissionNeeded:
+            PermissionNeededView()
         default:
             NavigationStack {
                 HomeView()

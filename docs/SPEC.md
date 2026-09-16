@@ -169,21 +169,28 @@ Do not force the user to name or organize the capture.
  ┌──────────┐  ──────────>  ┌──────────┐  ──────────────>  ┌──────────┐
  │ DISARMED │               │  ARMED   │                   │ STARTING │
  └──────────┘  <──────────  └──────────┘                   └────┬─────┘
-                 disarm()       ^  ^                            │
-                                │  │            session ready   │
-                                │  │                            v
-                                │  │                       ┌──────────┐
-                   stop ok ─────┘  │                       │RECORDING │
-                   (persists as    │                       └──┬────┬──┘
-                    SAVED)         │                          │    │
-                                   │    user stop /           │    │  interruption /
-                  ┌──────────┐     │    max duration          │    │  route loss /
-                  │ STOPPING │ <───┼──────────────────────────┘    │  media reset
-                  └──────────┘     │                               │
-                                   │                               v
-                                   │                      ┌─────────────┐
-                                   └───── arm() ──────────│ INTERRUPTED │
-                                                          └─────────────┘
+                 disarm()       ^  ^  ^                         │
+                                │  │  │         session ready   │
+                                │  │  │                         v
+                                │  │  │                    ┌──────────┐
+                   stop ok ─────┘  │  │                    │RECORDING │
+                   (persists as    │  │                    └──┬────┬──┘
+                    SAVED)         │  │                       │    │
+                                   │  │ user stop /           │    │  interruption /
+                  ┌──────────┐     │  │ max duration          │    │  route loss /
+                  │ STOPPING │ <───┼──┼───────────────────────┘    │  media reset
+                  └──────────┘     │  │                            │
+                                   │  │                            v
+                                   │  │                  ┌─────────────┐
+                                   │  └─── arm() ────────│ INTERRUPTED │
+                                   │                     └─────────────┘
+                                   │
+                  ┌────────────────────┐
+                  │ PERMISSION_NEEDED  │ <── STARTING, when mic permission denied
+                  └────┬──────────┬────┘
+                       │          │
+                       │          └── permission restored (foreground) ──> ARMED
+                       └── disarm() ──> DISARMED
 
                   ┌──────────┐
                   │  FAILED  │ <── any state, on unrecoverable error
@@ -201,13 +208,14 @@ States:
 - `STOPPING`
 - `SAVED` (persistence state only — written to `CaptureRecord.state`)
 - `INTERRUPTED` (persistence state — partial audio preserved after system interruption)
+- `PERMISSION_NEEDED` (microphone permission revoked — user must re-enable in Settings)
 - `FAILED`
 
 Transitions:
 
 `DISARMED -> ARMED`
 - user explicitly arms Wake Capture.
-- also: `SAVED`, `FAILED`, `INTERRUPTED` -> `ARMED` (re-arm after terminal states).
+- also: `SAVED`, `FAILED`, `INTERRUPTED`, `PERMISSION_NEEDED` -> `ARMED` (re-arm after terminal states).
 
 `ARMED -> STARTING`
 - explicit Capture system action.
@@ -228,8 +236,13 @@ Transitions:
 - system audio interruption, route loss, or media services reset.
 - partial audio is finalized and persisted with `interrupted` state.
 
+`STARTING -> PERMISSION_NEEDED`
+- microphone permission is `.denied` (revoked in Settings or never granted post-onboarding).
+- shows dedicated view with "Open Settings" deep link and "Cancel" (disarms).
+- on return to foreground, `recheckPermission()` checks if user restored access; if granted, auto-transitions to `ARMED`.
+
 Any state -> `FAILED`
-- unrecoverable permission/session/storage error.
+- unrecoverable permission/session/storage error (excluding denied mic permission, which uses `PERMISSION_NEEDED`).
 
 Never transition:
 - `ARMED -> RECORDING` without an explicit user action.
@@ -438,7 +451,10 @@ Permission UX:
 5. Never attempt to infer or bypass permission state.
 
 If permission is revoked:
-- capture action must fail safely.
+- capture action transitions to `PERMISSION_NEEDED` state (not `FAILED`).
+- dedicated `PermissionNeededView` displays explanation and "Open Settings" button (deep-links via `UIApplication.openSettingsURLString`).
+- on return to foreground, coordinator rechecks permission; if restored, auto-re-arms.
+- user can cancel to disarm instead.
 - system control should reflect unavailable state if possible.
 
 ---
@@ -519,6 +535,7 @@ Implemented modules:
 `UI`
 - `ContentView` — root navigation
 - `OnboardingView`
+- `PermissionNeededView` — microphone permission recovery with Settings deep link
 - `SettingsView`
 - `RecordingView`
 - `CaptureHistoryView`

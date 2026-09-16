@@ -63,7 +63,7 @@ final class CaptureCoordinator {
     }
 
     func arm() {
-        guard state == .disarmed || state == .saved || state == .failed else { return }
+        guard state == .disarmed || state == .saved || state == .failed || state == .permissionNeeded else { return }
         state = .armed
         lastError = nil
         autoDisarmManager.recordArm()
@@ -75,6 +75,15 @@ final class CaptureCoordinator {
         state = .disarmed
         autoDisarmManager.clearArm()
         logger.info("Wake Capture disarmed")
+    }
+
+    func recheckPermission() {
+        guard state == .permissionNeeded else { return }
+        if audioSession.checkPermission() == .granted {
+            state = .armed
+            lastError = nil
+            logger.info("Microphone permission restored, re-armed")
+        }
     }
 
     func enforceExpiry() {
@@ -120,7 +129,7 @@ final class CaptureCoordinator {
         let permission = audioSession.checkPermission()
         switch permission {
         case .denied:
-            fail(.microphonePermissionDenied)
+            state = .permissionNeeded
             return
         case .restricted:
             fail(.microphonePermissionRestricted)
@@ -128,7 +137,7 @@ final class CaptureCoordinator {
         case .undetermined:
             let granted = await audioSession.requestPermission()
             if !granted {
-                fail(.microphonePermissionDenied)
+                state = .permissionNeeded
                 return
             }
         case .granted:

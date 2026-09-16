@@ -63,14 +63,13 @@ final class CaptureCoordinatorTests: XCTestCase {
         XCTAssertNotNil(sut.lastError)
     }
 
-    func test_startCapture_permissionDenied_failsWithCorrectError() async {
+    func test_startCapture_permissionDenied_transitionsToPermissionNeeded() async {
         sut.arm()
         mockSession.permissionStatus = .denied
 
         await sut.startCapture()
 
-        XCTAssertNotEqual(sut.state, .recording)
-        XCTAssertEqual(sut.lastError?.userMessage, CaptureError.microphonePermissionDenied.userMessage)
+        XCTAssertEqual(sut.state, .permissionNeeded)
     }
 
     func test_startCapture_permissionUndetermined_requestsAndProceeds() async {
@@ -90,8 +89,28 @@ final class CaptureCoordinatorTests: XCTestCase {
 
         await sut.startCapture()
 
-        XCTAssertNotEqual(sut.state, .recording)
-        XCTAssertEqual(sut.lastError?.userMessage, CaptureError.microphonePermissionDenied.userMessage)
+        XCTAssertEqual(sut.state, .permissionNeeded)
+    }
+
+    func test_recheckPermission_rearmsWhenGranted() async {
+        sut.arm()
+        mockSession.permissionStatus = .denied
+        await sut.startCapture()
+        XCTAssertEqual(sut.state, .permissionNeeded)
+
+        mockSession.permissionStatus = .granted
+        sut.recheckPermission()
+        XCTAssertEqual(sut.state, .armed)
+    }
+
+    func test_recheckPermission_staysInPermissionNeededWhenStillDenied() async {
+        sut.arm()
+        mockSession.permissionStatus = .denied
+        await sut.startCapture()
+        XCTAssertEqual(sut.state, .permissionNeeded)
+
+        sut.recheckPermission()
+        XCTAssertEqual(sut.state, .permissionNeeded)
     }
 
     func test_startCapture_insufficientStorage_fails() async {
