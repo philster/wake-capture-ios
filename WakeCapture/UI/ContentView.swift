@@ -141,7 +141,7 @@ struct HomeView: View {
             statusSection
                 .frame(maxWidth: .infinity)
             buttonsSection
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: 280)
         }
         .padding(.horizontal, 24)
         .frame(maxHeight: .infinity)
