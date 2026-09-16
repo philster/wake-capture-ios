@@ -10,6 +10,12 @@ Audio capture app for iOS, built for the moment between sleep and awake. You arm
   <img src="docs/screenshots/03_capture_history.png" alt="Capture history" width="250">
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/04_home_armed_landscape.png" alt="Home screen in landscape" width="400">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/05_recording_landscape.png" alt="Recording in landscape" width="400">
+</p>
+
 ## Why
 
 Half-asleep ideas vanish in seconds. By the time you've unlocked your phone, opened Notes, and started typing, the thought is gone. Wake Capture skips all of that. One tap from the lock screen, speak, done. The recording saves locally and you deal with it in the morning.
@@ -79,7 +85,7 @@ Siri shortcuts are registered for start, stop, arm, and disarm.
 - `CaptureRepository` is a `@ModelActor` for thread-safe persistence
 - `AudioRecorder` sits behind an `AudioRecording` protocol; tests swap in mocks
 
-Audited against Apple's Human Interface Guidelines — see [`docs/HIG_FINAL_REPORT.md`](docs/HIG_FINAL_REPORT.md) for details. Supports VoiceOver, Dynamic Type, Reduce Motion, and system color scheme.
+Audited against Apple's Human Interface Guidelines — see [`docs/HIG_FINAL_REPORT.md`](docs/HIG_FINAL_REPORT.md) for details. Supports VoiceOver, Dynamic Type, Reduce Motion, system color scheme, and adaptive orientation (landscape/portrait).
 
 Full spec lives in [`docs/SPEC.md`](docs/SPEC.md).
 

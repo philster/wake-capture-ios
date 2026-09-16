@@ -79,6 +79,7 @@ private struct OnboardingPage<Actions: View>: View {
     @ViewBuilder let actions: () -> Actions
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 80
 
     var body: some View {
         if verticalSizeClass == .compact {
@@ -90,7 +91,7 @@ private struct OnboardingPage<Actions: View>: View {
 
     private var illustration: some View {
         Image(systemName: icon)
-            .font(.system(size: 80))
+            .font(.system(size: iconSize))
             .foregroundStyle(iconColor)
             .accessibilityHidden(true)
     }

@@ -565,6 +565,7 @@ Implemented per Apple Human Interface Guidelines audit (see `docs/HIG_FINAL_REPO
 - **Navigation**: Settings and History paired in bottom toolbar (`.bottomBar` `ToolbarItemGroup`). Standard iOS patterns for secondary navigation in single-purpose apps.
 - **Destructive actions**: Delete confirmation via item-bound `.confirmationDialog`.
 - **Error handling**: Errors surfaced via `.alert()`, not inline text.
+- **Adaptive layout**: All orientations declared (`UIRequiresFullScreen: false`). HomeView, RecordingView, and OnboardingView use `@Environment(\.verticalSizeClass)` to switch between portrait (VStack) and landscape (HStack) layouts. SettingsView, CaptureHistoryView, and CaptureDetailView use Form/List which adapt natively. No orientation locking.
 
 ---
 

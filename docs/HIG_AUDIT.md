@@ -12,7 +12,7 @@ Wake Capture is a single-purpose audio recording app designed for capturing thou
 | Min deployment target | iOS 18.0 |
 | Swift version | 6.0 |
 | Device families | iPhone only (`TARGETED_DEVICE_FAMILY: "1"`) |
-| Orientations | Default (portrait assumed; no explicit lock) |
+| Orientations | All orientations supported; adaptive layouts via `verticalSizeClass` |
 | Navigation | `NavigationStack` (single stack) |
 | State management | `@Observable` (`CaptureCoordinator`), `@AppStorage`, `@Environment`, SwiftData `@Query` |
 | Persistence | SwiftData (`CaptureRecord`), `UserDefaults`, file system (`RecordingFileStore`) |
@@ -49,7 +49,7 @@ Wake Capture is a single-purpose audio recording app designed for capturing thou
 - **Dynamic Type**: Uses semantic text styles — will scale
 - **Dark Mode**: System colors will adapt; hardcoded `.indigo`/`.green`/`.blue` may not have ideal contrast
 - **Safe area**: Content is vertically centered with Spacers; no explicit safe-area handling
-- **Orientation**: No lock — landscape would distort layout
+- **Orientation**: Adaptive — `verticalSizeClass` switches to HStack in compact height (landscape)
 
 ### 2. Home Screen (HomeView in ContentView)
 
@@ -71,7 +71,7 @@ Wake Capture is a single-purpose audio recording app designed for capturing thou
 - **Dynamic Type**: `.system(size: 80)` icon won't scale with Dynamic Type
 - **Dark Mode**: `.green`, `.gray`, `.red` tints are adaptive; `.secondary` is semantic
 - **Safe area**: Full-screen `VStack` with Spacers — reasonable
-- **Orientation**: No lock; VStack layout would compress awkwardly in landscape
+- **Orientation**: Adaptive — `verticalSizeClass` switches to HStack (status left, buttons right) in compact height
 
 ### 3. Recording Screen (RecordingView)
 
@@ -94,7 +94,7 @@ Wake Capture is a single-purpose audio recording app designed for capturing thou
 - **Dynamic Type**: All fixed font sizes — does not support Dynamic Type
 - **Dark Mode**: Forces `.preferredColorScheme(.dark)` — always dark
 - **Safe area**: `.frame(maxWidth: .infinity, maxHeight: .infinity)` with `.background(.black)`
-- **Orientation**: Would work but button is fixed-size
+- **Orientation**: Adaptive — `verticalSizeClass` switches to HStack (timer left, stop button right) in compact height; button uses `@ScaledMetric`
 
 ### 4. Settings Screen (SettingsView)
 

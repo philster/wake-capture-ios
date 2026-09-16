@@ -172,7 +172,6 @@ Test status: **37/37 PASS** (all phases)
 2. **Localization**: All strings remain hardcoded in English. No `.strings`/`.xcstrings` files exist. Full i18n is a separate effort.
 3. **UI tests**: No automated UI/accessibility tests. Validation was done via manual simulator testing and unit test suite.
 4. **Confirmation dialog anchoring**: iOS 26 `.confirmationDialog` has an arrow-anchoring bug with IndexSet-based `.onDelete` — resolved by using per-row `.swipeActions` with item-bound state so the dialog anchors to the correct row.
-5. **Orientation lock**: No explicit portrait lock. Landscape may produce suboptimal layouts on some screens.
 
 ---
 
@@ -186,6 +185,7 @@ Test status: **37/37 PASS** (all phases)
 | `8e1a873` | style: add polish for button sizing, haptics, and animations |
 | `16c552e` | fix: use item-bound confirmationDialog for delete confirmation |
 | `b98fcc5` | style: move toolbar icons to balanced bottom bar and update screenshots |
+| *(pending)* | feat: support all interface orientations with adaptive SwiftUI layouts |
 
 ---
 
