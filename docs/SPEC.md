@@ -562,7 +562,7 @@ Implemented per Apple Human Interface Guidelines audit (see `docs/HIG_FINAL_REPO
 - **Reduce Motion**: Pulsing recording dot and symbol transitions conditional on `@Environment(\.accessibilityReduceMotion)`.
 - **Color scheme**: Respects system Light/Dark mode. No forced color scheme overrides. Semantic system colors used for backgrounds and text.
 - **Haptics**: `.sensoryFeedback(.impact(flexibility: .soft))` on arm/disarm state change (pure SwiftUI, no UIKit).
-- **Navigation**: Settings in toolbar (`.primaryAction`), History in bottom toolbar. Standard iOS patterns.
+- **Navigation**: Settings and History paired in bottom toolbar (`.bottomBar` `ToolbarItemGroup`). Standard iOS patterns for secondary navigation in single-purpose apps.
 - **Destructive actions**: Delete confirmation via item-bound `.confirmationDialog`.
 - **Error handling**: Errors surfaced via `.alert()`, not inline text.
 

@@ -90,20 +90,18 @@ struct HomeView: View {
         }
         .animation(reduceMotion ? nil : .default, value: coordinator.isArmed)
         .navigationTitle("Wake Capture")
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .bottomBar) {
+                NavigationLink {
+                    CaptureHistoryView()
+                } label: {
+                    Label("History", systemImage: "microphone.badge.ellipsis")
+                }
+                Spacer()
                 NavigationLink {
                     SettingsView()
                 } label: {
                     Label("Settings", systemImage: "gear")
-                }
-            }
-            ToolbarItem(placement: .bottomBar) {
-                NavigationLink {
-                    CaptureHistoryView()
-                } label: {
-                    Label("Capture History", systemImage: "list.bullet")
                 }
             }
         }

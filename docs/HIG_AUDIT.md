@@ -62,7 +62,7 @@ Wake Capture is a single-purpose audio recording app designed for capturing thou
 - **Typography**: `.system(size: 80)` (icon), `.title2.semibold`, `.subheadline`, `.title3.medium`, `.callout`
 - **Colors**: `.green`, `.gray`, `.secondary`, `.red` (all hardcoded tints)
 - **Spacing**: `spacing: 40`, `spacing: 12`, `padding(.vertical, 16)`, `padding(.horizontal, 40)`, `padding(.bottom, 8)`, `padding(.bottom, 32)`
-- **Icons**: SF Symbols (`mic.circle.fill`, `mic.circle`, `record.circle`, `list.bullet`, `gear`)
+- **Icons**: SF Symbols (`mic.circle.fill`, `mic.circle`, `record.circle`, `microphone.badge.ellipsis`, `gear`)
 - **Sheets/Alerts**: None
 - **Loading states**: None (starting state handled by ContentView switching to RecordingView)
 - **Empty states**: N/A
