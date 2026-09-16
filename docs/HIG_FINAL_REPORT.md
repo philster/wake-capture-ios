@@ -53,7 +53,7 @@ Test status: **37/37 PASS** (all phases)
 ### P1 — Platform Conventions
 
 #### P1-01 + P2-05: Home screen navigation restructured ✅
-- **Commit**: `20b4688`, updated in later toolbar refactor
+- **Commit**: `20b4688`, updated in `b98fcc5`
 - **Changes**: Settings and History paired in bottom toolbar via `ToolbarItemGroup(placement: .bottomBar)` with `Spacer` between them. History icon updated to `microphone.badge.ellipsis`.
 - **Files**: ContentView.swift
 - **Details**: Removed ad-hoc bottom VStack links. Both secondary destinations are visually balanced as peers in the bottom toolbar, keeping the top bar clean for the navigation title. Follows standard iOS toolbar patterns for single-purpose apps.
@@ -185,6 +185,7 @@ Test status: **37/37 PASS** (all phases)
 | `64d4757` | fix: improve visual system and component consistency |
 | `8e1a873` | style: add polish for button sizing, haptics, and animations |
 | `16c552e` | fix: use item-bound confirmationDialog for delete confirmation |
+| `b98fcc5` | style: move toolbar icons to balanced bottom bar and update screenshots |
 
 ---
 
