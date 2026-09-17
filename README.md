@@ -85,7 +85,7 @@ Siri shortcuts are registered for start, stop, arm, and disarm.
 - `CaptureRepository` is a `@ModelActor` for thread-safe persistence
 - `AudioRecorder` sits behind an `AudioRecording` protocol; tests swap in mocks
 
-Audited against Apple's Human Interface Guidelines — see [`docs/HIG_FINAL_REPORT.md`](docs/HIG_FINAL_REPORT.md) for details. Supports VoiceOver, Dynamic Type, Reduce Motion, system color scheme, and adaptive orientation (landscape/portrait).
+Audited against Apple's Human Interface Guidelines — see [`docs/HIG_FINAL_REPORT.md`](docs/HIG_FINAL_REPORT.md) for details. Supports VoiceOver, Dynamic Type, Reduce Motion, system color scheme (including light/dark app icon variants), and adaptive orientation (landscape/portrait).
 
 Full spec lives in [`docs/SPEC.md`](docs/SPEC.md).
 
